@@ -56,6 +56,58 @@ export const scanReceipt = async (req: AuthRequest, res: Response) => {
     }
 };
 
+export const scanReceiptFile = async (req: AuthRequest, res: Response) => {
+    try {
+        const file = req.file as Express.Multer.File & { path?: string };
+
+        if (!file) {
+            return res.status(400).json({ message: ErrorMessages.OCR_IMAGE_REQUIRED });
+        }
+
+        const imageUrl = file.path;
+        const publicId = (file as any).filename;
+
+        const response = await fetch(imageUrl!);
+        const arrayBuffer = await response.arrayBuffer();
+        const base64Data = Buffer.from(arrayBuffer).toString("base64");
+
+        const result = await processReceiptImage(base64Data);
+
+        if (!result.success) {
+            return res.status(422).json({
+                message: ErrorMessages.OCR_PROCESSING_FAILED,
+                error: result.error,
+                imageUrl
+            });
+        }
+
+        const categories = await Category.find({ userId: req.user!._id });
+        let matchedCategoryId = null;
+
+        if (result.data?.suggestedCategory && categories.length > 0) {
+            const suggested = result.data.suggestedCategory.toLowerCase();
+            const matched = categories.find(c =>
+                c.name.toLowerCase().includes(suggested) ||
+                suggested.includes(c.name.toLowerCase())
+            );
+            if (matched) {
+                matchedCategoryId = matched._id;
+            }
+        }
+
+        return res.json({
+            success: true,
+            extractedData: result.data,
+            imageUrl,
+            publicId,
+            matchedCategoryId,
+            availableCategories: categories.map(c => ({ _id: c._id, name: c.name }))
+        });
+    } catch (err: any) {
+        return res.status(500).json({ message: ErrorMessages.SERVER_ERROR });
+    }
+};
+
 export const uploadReceiptImage = async (req: AuthRequest, res: Response) => {
     try {
         const file = req.file as Express.Multer.File & { path?: string };
