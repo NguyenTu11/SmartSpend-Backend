@@ -123,6 +123,24 @@ npm start
 | PATCH | /api/notifications/read-all | Đánh dấu tất cả đã đọc |
 | DELETE | /api/notifications/:id | Xoá thông báo |
 
+### Analytics
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/analytics/by-time?from=&to=&groupBy= | Thống kê theo khoảng thời gian |
+| GET | /api/analytics/weekly | Thống kê tuần hiện tại |
+| GET | /api/analytics/yearly?year= | Thống kê theo năm |
+
+### User / Financial Score
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/user/profile | Thông tin người dùng |
+| GET | /api/user/financial-score | Điểm tài chính (0-100) |
+
+### OCR
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | /api/ocr/scan | Quét hóa đơn |
+
 ## Project Structure
 
 ```
@@ -132,7 +150,7 @@ src/
 ├── middlewares/    # Auth & Rate limiting
 ├── models/         # Mongoose schemas
 ├── routes/         # API routes
-├── services/       # Business logic (AI Service)
+├── services/       # Business logic (AI, OCR, Financial Score)
 ├── cron/           # Scheduled jobs
 ├── utils/          # Helpers & Error messages
 └── index.ts        # Entry point

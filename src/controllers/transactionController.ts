@@ -4,8 +4,11 @@ import { Budget } from "../models/Budget";
 import { BudgetTransfer } from "../models/BudgetTransfer";
 import { Wallet } from "../models/Wallet";
 import { Notification } from "../models/Notification";
+import { Category } from "../models/Category";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import { ErrorMessages } from "../utils/errorMessages";
+import { detectAnomaly, createAnomalyNotification } from "../services/anomalyService";
+import { uploadBase64Image } from "../services/cloudinary";
 import mongoose from "mongoose";
 
 const calculateNextRecurringDate = (frequency: string, fromDate: Date = new Date()): Date => {
@@ -36,6 +39,7 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
             location,
             tags,
             evidence,
+            evidenceImage,
             isRecurring,
             recurringFrequency
         } = req.body;
@@ -61,6 +65,12 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
             return res.status(404).json({ message: ErrorMessages.WALLET_NOT_FOUND });
         }
 
+        let evidenceUrl = evidence;
+        if (evidenceImage) {
+            const uploadResult = await uploadBase64Image(evidenceImage, "transactions");
+            evidenceUrl = uploadResult.url;
+        }
+
         const transaction = new Transaction({
             userId: req.user!._id,
             walletId: new mongoose.Types.ObjectId(walletId),
@@ -71,7 +81,7 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
             exchangeRate,
             location,
             tags: tags || [],
-            evidence,
+            evidence: evidenceUrl,
             isRecurring: !!isRecurring,
             recurringFrequency: isRecurring ? recurringFrequency : undefined,
             nextRecurringDate: isRecurring && recurringFrequency
@@ -83,6 +93,26 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
 
         const balanceChange = type === "income" ? amount : -amount;
         await Wallet.findByIdAndUpdate(walletId, { $inc: { balance: balanceChange } });
+
+        if (type === "expense") {
+            const category = await Category.findById(categoryId);
+            const categoryName = category?.name || "Không xác định";
+
+            const anomalyResult = await detectAnomaly(
+                new mongoose.Types.ObjectId(req.user!._id as string),
+                new mongoose.Types.ObjectId(categoryId),
+                amount,
+                categoryName
+            );
+
+            if (anomalyResult.isAnomaly) {
+                await createAnomalyNotification(
+                    new mongoose.Types.ObjectId(req.user!._id as string),
+                    anomalyResult,
+                    transaction._id as mongoose.Types.ObjectId
+                );
+            }
+        }
 
         const budgets = await Budget.find({
             userId: req.user!._id,
@@ -225,7 +255,19 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
 
 export const getTransactions = async (req: AuthRequest, res: Response) => {
     try {
-        const { walletId, categoryId, type, startDate, endDate, limit, page } = req.query;
+        const {
+            walletId,
+            categoryId,
+            type,
+            startDate,
+            endDate,
+            limit,
+            page,
+            minAmount,
+            maxAmount,
+            location,
+            tags
+        } = req.query;
 
         const filter: any = { userId: req.user!._id };
 
@@ -236,6 +278,21 @@ export const getTransactions = async (req: AuthRequest, res: Response) => {
             filter.createdAt = {};
             if (startDate) filter.createdAt.$gte = new Date(startDate as string);
             if (endDate) filter.createdAt.$lte = new Date(endDate as string);
+        }
+
+        if (minAmount || maxAmount) {
+            filter.amount = {};
+            if (minAmount) filter.amount.$gte = parseFloat(minAmount as string);
+            if (maxAmount) filter.amount.$lte = parseFloat(maxAmount as string);
+        }
+
+        if (location) {
+            filter.location = { $regex: location as string, $options: "i" };
+        }
+
+        if (tags) {
+            const tagList = (tags as string).split(",").map(t => t.trim());
+            filter.tags = { $in: tagList };
         }
 
         const pageNum = parseInt(page as string) || 1;
@@ -394,6 +451,12 @@ export const updateTransaction = async (req: AuthRequest, res: Response) => {
         if (updates.walletId) updates.walletId = new mongoose.Types.ObjectId(updates.walletId);
         if (updates.categoryId) updates.categoryId = new mongoose.Types.ObjectId(updates.categoryId);
 
+        if (updates.evidenceImage) {
+            const uploadResult = await uploadBase64Image(updates.evidenceImage, "transactions");
+            updates.evidence = uploadResult.url;
+            delete updates.evidenceImage;
+        }
+
         const oldBalanceEffect = oldTransaction.type === "income" ? oldTransaction.amount : -oldTransaction.amount;
         await Wallet.findByIdAndUpdate(oldTransaction.walletId, { $inc: { balance: -oldBalanceEffect } });
 
@@ -434,6 +497,100 @@ export const deleteTransaction = async (req: AuthRequest, res: Response) => {
         await Transaction.findByIdAndDelete(id);
 
         return res.json({ message: "Đã xoá giao dịch thành công" });
+    } catch (err: any) {
+        return res.status(500).json({ message: ErrorMessages.SERVER_ERROR });
+    }
+};
+
+export const exportTransactions = async (req: AuthRequest, res: Response) => {
+    try {
+        const { format, startDate, endDate } = req.query;
+
+        if (!format || !["csv", "json"].includes(format as string)) {
+            return res.status(400).json({ message: ErrorMessages.EXPORT_INVALID_FORMAT });
+        }
+
+        const filter: any = { userId: req.user!._id };
+
+        if (startDate || endDate) {
+            filter.createdAt = {};
+            if (startDate) filter.createdAt.$gte = new Date(startDate as string);
+            if (endDate) {
+                const end = new Date(endDate as string);
+                end.setHours(23, 59, 59, 999);
+                filter.createdAt.$lte = end;
+            }
+        }
+
+        const transactions = await Transaction.find(filter)
+            .populate("categoryId", "name")
+            .populate("walletId", "name")
+            .sort({ createdAt: -1 });
+
+        const exportData = transactions.map(tx => ({
+            date: tx.createdAt.toISOString().split("T")[0],
+            time: tx.createdAt.toTimeString().split(" ")[0],
+            type: tx.type === "income" ? "Thu nhập" : "Chi tiêu",
+            amount: tx.amount,
+            category: (tx.categoryId as any)?.name || "Khác",
+            wallet: (tx.walletId as any)?.name || "Unknown",
+            location: tx.location || "",
+            tags: tx.tags?.join(", ") || "",
+            currency: tx.currency
+        }));
+
+        if (format === "csv") {
+            const headers = ["Ngày", "Giờ", "Loại", "Số tiền", "Danh mục", "Ví", "Địa điểm", "Tags", "Tiền tệ"];
+            const csvRows = [
+                headers.join(","),
+                ...exportData.map(row => [
+                    row.date,
+                    row.time,
+                    row.type,
+                    row.amount,
+                    `"${row.category}"`,
+                    `"${row.wallet}"`,
+                    `"${row.location}"`,
+                    `"${row.tags}"`,
+                    row.currency
+                ].join(","))
+            ];
+
+            const csvContent = "\ufeff" + csvRows.join("\n");
+
+            res.setHeader("Content-Type", "text/csv; charset=utf-8");
+            res.setHeader("Content-Disposition", `attachment; filename=transactions_${Date.now()}.csv`);
+            return res.send(csvContent);
+        }
+
+        res.setHeader("Content-Type", "application/json");
+        res.setHeader("Content-Disposition", `attachment; filename=transactions_${Date.now()}.json`);
+        return res.json({
+            exportedAt: new Date().toISOString(),
+            totalTransactions: exportData.length,
+            transactions: exportData
+        });
+    } catch (err: any) {
+        return res.status(500).json({ message: ErrorMessages.SERVER_ERROR });
+    }
+};
+
+export const uploadEvidence = async (req: AuthRequest, res: Response) => {
+    try {
+        const file = req.file as Express.Multer.File & { path?: string };
+
+        if (!file) {
+            return res.status(400).json({ message: "Vui lòng tải lên ảnh chứng từ" });
+        }
+
+        const imageUrl = file.path;
+        const publicId = (file as any).filename;
+
+        return res.json({
+            success: true,
+            url: imageUrl,
+            publicId
+        });
     } catch (err: any) {
         return res.status(500).json({ message: ErrorMessages.SERVER_ERROR });
     }

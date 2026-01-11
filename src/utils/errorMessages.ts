@@ -48,5 +48,15 @@ export const ErrorMessages = {
 
     VERIFICATION_CODE_INVALID: "Mã xác thực không chính xác",
     VERIFICATION_CODE_EXPIRED: "Mã xác thực đã hết hạn",
-    VERIFICATION_EMAIL_SENT: "Đã gửi email xác thực"
+    VERIFICATION_EMAIL_SENT: "Đã gửi email xác thực",
+
+    ANALYTICS_DATE_REQUIRED: "Vui lòng chọn khoảng thời gian",
+    ANALYTICS_INVALID_DATE_RANGE: "Ngày bắt đầu phải trước ngày kết thúc",
+
+    EXPORT_INVALID_FORMAT: "Định dạng xuất không hợp lệ. Chọn csv hoặc xlsx",
+
+    FINANCIAL_SCORE_ERROR: "Không thể tính điểm tài chính",
+
+    OCR_IMAGE_REQUIRED: "Vui lòng tải lên hình ảnh hóa đơn",
+    OCR_PROCESSING_FAILED: "Không thể xử lý hình ảnh hóa đơn"
 };

@@ -83,3 +83,73 @@ export const deleteBudget = async (req: AuthRequest, res: Response): Promise<Res
         return res.status(500).json({ message: ErrorMessages.SERVER_ERROR });
     }
 };
+
+export const getBudgetStatus = async (req: AuthRequest, res: Response): Promise<Response> => {
+    try {
+        if (!req.user?._id) return res.status(401).json({ message: ErrorMessages.NO_TOKEN });
+
+        const now = new Date();
+        const budgets = await Budget.find({
+            userId: new mongoose.Types.ObjectId(req.user._id),
+            startDate: { $lte: now },
+            endDate: { $gte: now }
+        }).populate("categoryId", "name");
+
+        const { Transaction } = await import("../models/Transaction");
+
+        const budgetStatuses = await Promise.all(budgets.map(async (budget) => {
+            const budgetCategoryId = (budget.categoryId as any)?._id || budget.categoryId;
+            const categoryName = (budget.categoryId as any)?.name || "Unknown";
+
+            const spentResult = await Transaction.aggregate([
+                {
+                    $match: {
+                        userId: new mongoose.Types.ObjectId(req.user!._id as string),
+                        categoryId: new mongoose.Types.ObjectId(budgetCategoryId),
+                        type: "expense",
+                        createdAt: { $gte: budget.startDate, $lte: budget.endDate }
+                    }
+                },
+                { $group: { _id: null, total: { $sum: "$amount" } } }
+            ]);
+
+            const spent = spentResult[0]?.total || 0;
+            const remaining = budget.limit - spent;
+            const percentage = Math.round((spent / budget.limit) * 100);
+
+            let status: "SAFE" | "WARNING" | "EXCEEDED";
+            if (percentage > 100) {
+                status = "EXCEEDED";
+            } else if (percentage >= budget.alertThreshold * 100) {
+                status = "WARNING";
+            } else {
+                status = "SAFE";
+            }
+
+            return {
+                budgetId: budget._id,
+                categoryId: budgetCategoryId,
+                categoryName,
+                limit: budget.limit,
+                spent,
+                remaining,
+                percentage,
+                status,
+                alertThreshold: budget.alertThreshold,
+                startDate: budget.startDate,
+                endDate: budget.endDate
+            };
+        }));
+
+        const summary = {
+            total: budgetStatuses.length,
+            safe: budgetStatuses.filter(b => b.status === "SAFE").length,
+            warning: budgetStatuses.filter(b => b.status === "WARNING").length,
+            exceeded: budgetStatuses.filter(b => b.status === "EXCEEDED").length
+        };
+
+        return res.json({ summary, budgets: budgetStatuses });
+    } catch (err: any) {
+        return res.status(500).json({ message: ErrorMessages.SERVER_ERROR });
+    }
+};
