@@ -8,13 +8,14 @@ import mongoose from "mongoose";
 
 export const createCategory = async (req: AuthRequest, res: Response) => {
     try {
-        const { name, parentId, keywords } = req.body;
+        const { name, type, parentId, keywords } = req.body;
 
         if (!name) return res.status(400).json({ message: ErrorMessages.CATEGORY_NAME_REQUIRED });
 
         const category = new Category({
             userId: req.user!._id,
             name,
+            type: type || "expense",
             parentId: parentId ? new mongoose.Types.ObjectId(parentId) : undefined,
             keywords: keywords || [],
         });
@@ -38,12 +39,13 @@ export const getCategories = async (req: AuthRequest, res: Response) => {
 export const updateCategory = async (req: AuthRequest, res: Response) => {
     try {
         const { id } = req.params;
-        const { name, parentId, keywords } = req.body;
+        const { name, type, parentId, keywords } = req.body;
 
         if (!id) return res.status(400).json({ message: ErrorMessages.REQUIRED_FIELDS });
 
         const updateData: any = {};
         if (name) updateData.name = name;
+        if (type) updateData.type = type;
         if (keywords) updateData.keywords = keywords;
         if (parentId) updateData.parentId = new mongoose.Types.ObjectId(parentId);
 
