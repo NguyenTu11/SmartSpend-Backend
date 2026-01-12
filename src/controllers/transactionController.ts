@@ -9,6 +9,7 @@ import { AuthRequest } from "../middlewares/authMiddleware";
 import { ErrorMessages } from "../utils/errorMessages";
 import { detectAnomaly, createAnomalyNotification } from "../services/anomalyService";
 import { uploadBase64Image } from "../services/cloudinary";
+import { createNotification } from "../services/notificationService";
 import mongoose from "mongoose";
 
 const calculateNextRecurringDate = (frequency: string, fromDate: Date = new Date()): Date => {
@@ -198,12 +199,11 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
                     });
                     await transfer.save();
 
-                    await Notification.create({
+                    await createNotification({
                         userId: req.user!._id,
                         type: "budget_transfer_request",
                         title: "Gợi ý chuyển ngân sách",
                         message: `${categoryName} đã vượt ${deficit.toLocaleString("vi-VN")} VND. Chuyển từ ${fromCategoryName}?`,
-                        isRead: false,
                         data: {
                             transferId: transfer._id,
                             fromBudgetId: suggestedFromBudget._id,
@@ -215,12 +215,11 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
                         }
                     });
                 } else {
-                    await Notification.create({
+                    await createNotification({
                         userId: req.user!._id,
                         type: "budget_exceeded",
                         title: "Vượt ngân sách",
                         message: `Bạn đã vượt ngân sách ${categoryName}. Chi tiêu: ${spent.toLocaleString("vi-VN")} VND / Hạn mức: ${budget.limit.toLocaleString("vi-VN")} VND`,
-                        isRead: false,
                         data: {
                             budgetId: budget._id,
                             categoryId: budgetCategoryId,
@@ -231,12 +230,11 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
                     });
                 }
             } else if (spent >= budget.limit * budget.alertThreshold) {
-                await Notification.create({
+                await createNotification({
                     userId: req.user!._id,
                     type: "budget_warning",
                     title: "Cảnh báo ngân sách",
                     message: `Bạn sắp hết ngân sách ${categoryName}. Chi tiêu: ${spent.toLocaleString("vi-VN")} VND / Hạn mức: ${budget.limit.toLocaleString("vi-VN")} VND`,
-                    isRead: false,
                     data: {
                         budgetId: budget._id,
                         categoryId: budgetCategoryId,

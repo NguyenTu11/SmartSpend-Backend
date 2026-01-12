@@ -1,9 +1,9 @@
 import { Response } from "express";
 import { BudgetTransfer } from "../models/BudgetTransfer";
 import { Budget } from "../models/Budget";
-import { Notification } from "../models/Notification";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import { ErrorMessages } from "../utils/errorMessages";
+import { createNotification } from "../services/notificationService";
 import mongoose from "mongoose";
 
 export const createTransferRequest = async (req: AuthRequest, res: Response) => {
@@ -56,12 +56,11 @@ export const createTransferRequest = async (req: AuthRequest, res: Response) => 
 
         await transfer.save();
 
-        await Notification.create({
+        await createNotification({
             userId: req.user!._id,
             type: "budget_transfer_request",
             title: "Yêu cầu chuyển ngân sách",
             message: `Chuyển ${amount.toLocaleString("vi-VN")} VND từ ${fromCategoryName} sang ${toCategoryName}?`,
-            isRead: false,
             data: {
                 transferId: transfer._id,
                 fromBudgetId,

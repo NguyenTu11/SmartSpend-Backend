@@ -2,6 +2,7 @@ import { Response } from "express";
 import { Notification } from "../models/Notification";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import { ErrorMessages } from "../utils/errorMessages";
+import { emitNotificationRead, emitUnreadCount } from "../services/notificationService";
 import mongoose from "mongoose";
 
 export const getNotifications = async (req: AuthRequest, res: Response) => {
@@ -50,6 +51,10 @@ export const markAsRead = async (req: AuthRequest, res: Response) => {
         if (!notification) {
             return res.status(404).json({ message: ErrorMessages.NOTIFICATION_NOT_FOUND });
         }
+
+        const userId = req.user!._id.toString();
+        emitNotificationRead(userId, String(id));
+        await emitUnreadCount(userId);
 
         return res.json(notification);
     } catch (err: any) {

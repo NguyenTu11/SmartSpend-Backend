@@ -1,5 +1,6 @@
 import { Transaction } from "../models/Transaction";
 import { Notification } from "../models/Notification";
+import { createNotification } from "./notificationService";
 import mongoose from "mongoose";
 
 interface AnomalyResult {
@@ -77,12 +78,11 @@ export const createAnomalyNotification = async (
         ? "Chi tiêu bất thường nghiêm trọng"
         : "Phát hiện chi tiêu bất thường";
 
-    await Notification.create({
+    await createNotification({
         userId,
         type: "anomaly_detected",
         title,
         message: anomalyResult.reason,
-        isRead: false,
         data: {
             transactionId,
             averageAmount: anomalyResult.averageAmount ?? 0,

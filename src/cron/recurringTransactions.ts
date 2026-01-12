@@ -2,7 +2,7 @@ import cron from "node-cron";
 import { Transaction } from "../models/Transaction";
 import { Wallet } from "../models/Wallet";
 import { Budget } from "../models/Budget";
-import { Notification } from "../models/Notification";
+import { createNotification } from "../services/notificationService";
 import mongoose from "mongoose";
 
 const calculateNextRecurringDate = (frequency: string, fromDate: Date = new Date()): Date => {
@@ -52,12 +52,11 @@ const checkBudgetAndNotify = async (
 
         if (spent >= budget.limit) {
             const deficit = spent - budget.limit;
-            await Notification.create({
+            await createNotification({
                 userId,
                 type: "budget_exceeded",
                 title: "Vượt ngân sách",
                 message: `Giao dịch định kỳ khiến ${categoryName} vượt ngân sách. Chi tiêu: ${spent.toLocaleString("vi-VN")} VND / Hạn mức: ${budget.limit.toLocaleString("vi-VN")} VND`,
-                isRead: false,
                 data: {
                     budgetId: budget._id,
                     categoryId: budgetCategoryId,
@@ -67,12 +66,11 @@ const checkBudgetAndNotify = async (
                 }
             });
         } else if (spent >= budget.limit * budget.alertThreshold) {
-            await Notification.create({
+            await createNotification({
                 userId,
                 type: "budget_warning",
                 title: "Cảnh báo ngân sách",
                 message: `Giao dịch định kỳ khiến ${categoryName} sắp hết ngân sách. Chi tiêu: ${spent.toLocaleString("vi-VN")} VND / Hạn mức: ${budget.limit.toLocaleString("vi-VN")} VND`,
-                isRead: false,
                 data: {
                     budgetId: budget._id,
                     categoryId: budgetCategoryId,
@@ -128,12 +126,11 @@ export const recurringTransactionsJob = () => {
                     const categoryName = (tx.categoryId as any)?.name || "Unknown";
                     const typeText = tx.type === "income" ? "thu nhập" : "chi tiêu";
 
-                    await Notification.create({
+                    await createNotification({
                         userId: tx.userId,
                         type: "recurring_transaction",
                         title: "Giao dịch định kỳ",
                         message: `Đã tạo giao dịch ${typeText} định kỳ: ${tx.amount.toLocaleString("vi-VN")} VND cho ${categoryName}`,
-                        isRead: false,
                         data: {
                             transactionId: newTx._id,
                             amount: tx.amount,

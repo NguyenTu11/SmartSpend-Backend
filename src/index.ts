@@ -1,7 +1,9 @@
 import express from "express";
+import { createServer } from "http";
 import cors from "cors";
 import { connectDB } from "./config/database";
 import { ENV } from "./config/env";
+import { socketManager } from "./services/socketManager";
 import authRoutes from "./routes/auth";
 import walletRoutes from "./routes/walletRoutes";
 import categoryRoutes from "./routes/categoryRoutes";
@@ -16,6 +18,10 @@ import ocrRoutes from "./routes/ocrRoutes";
 import { recurringTransactionsJob } from "./cron/recurringTransactions";
 
 const app = express();
+const httpServer = createServer(app);
+
+socketManager.initialize(httpServer);
+
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 
@@ -38,7 +44,8 @@ app.get("/", (_req, res) => {
 recurringTransactionsJob();
 
 connectDB().then(() => {
-    app.listen(ENV.PORT, () => {
+    httpServer.listen(ENV.PORT, () => {
         console.log(`Server running on port ${ENV.PORT}`);
     });
 });
+

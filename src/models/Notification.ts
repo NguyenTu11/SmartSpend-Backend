@@ -2,7 +2,7 @@ import mongoose, { Schema, Document } from "mongoose";
 
 export interface INotification extends Document {
     userId: mongoose.Types.ObjectId;
-    type: "budget_warning" | "budget_exceeded" | "budget_transfer_request" | "recurring_transaction" | "info";
+    type: "budget_warning" | "budget_exceeded" | "budget_transfer_request" | "recurring_transaction" | "anomaly_detected" | "info";
     title: string;
     message: string;
     isRead: boolean;
@@ -14,7 +14,7 @@ export interface INotification extends Document {
 const notificationSchema = new Schema<INotification>(
     {
         userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
-        type: { type: String, enum: ["budget_warning", "budget_exceeded", "budget_transfer_request", "recurring_transaction", "info"], required: true },
+        type: { type: String, enum: ["budget_warning", "budget_exceeded", "budget_transfer_request", "recurring_transaction", "anomaly_detected", "info"], required: true },
         title: { type: String, required: true },
         message: { type: String, required: true },
         isRead: { type: Boolean, default: false },
