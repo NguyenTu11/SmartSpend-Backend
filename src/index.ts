@@ -15,6 +15,7 @@ import notificationRoutes from "./routes/notificationRoutes";
 import analyticsRoutes from "./routes/analyticsRoutes";
 import userRoutes from "./routes/userRoutes";
 import ocrRoutes from "./routes/ocrRoutes";
+import dashboardRoutes from "./routes/dashboardRoutes";
 import { recurringTransactionsJob } from "./cron/recurringTransactions";
 
 const app = express();
@@ -42,6 +43,7 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/ocr", ocrRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 app.get("/", (_req, res) => {
     res.send("SmartSpend Backend Running");
