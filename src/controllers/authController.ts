@@ -3,7 +3,7 @@ import { User } from "../models/User";
 import { EmailVerification } from "../models/EmailVerification";
 import { PasswordReset } from "../models/PasswordReset";
 import { Category } from "../models/Category";
-import { sendEmail } from "../services/emailService";
+import { sendVerificationEmail, sendPasswordResetEmail } from "../services/emailService";
 import { ENV } from "../config/env";
 import { ErrorMessages } from "../utils/errorMessages";
 import jwt from "jsonwebtoken";
@@ -60,7 +60,7 @@ export const register = async (req: Request, res: Response) => {
         });
         await emailVer.save();
 
-        await sendEmail(user.email, "Mã xác thực SmartSpend", `Mã xác thực của bạn là: ${code}. Mã này sẽ hết hạn sau 10 phút.`);
+        await sendVerificationEmail(user.email, code);
 
         return res.status(201).json({ message: "Đăng ký thành công, vui lòng kiểm tra email để xác thực" });
     } catch (err: any) {
@@ -152,11 +152,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
         });
         await resetRecord.save();
 
-        await sendEmail(
-            user.email,
-            "Đặt lại mật khẩu SmartSpend",
-            `Mã xác nhận đặt lại mật khẩu của bạn là: ${code}. Mã này sẽ hết hạn sau 10 phút.`
-        );
+        await sendPasswordResetEmail(user.email, code);
 
         return res.json({ message: "Nếu email tồn tại, bạn sẽ nhận được mã xác nhận" });
     } catch (err: any) {
