@@ -20,5 +20,6 @@ export const ENV = {
     },
 
     GEMINI_API_KEY: process.env.GEMINI_API_KEY || "",
-    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || ""
+    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || "",
+    FRONTEND_URL: process.env.FRONTEND_URL || ""
 };
