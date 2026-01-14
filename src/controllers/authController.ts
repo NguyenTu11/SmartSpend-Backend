@@ -2,11 +2,40 @@ import { Request, Response } from "express";
 import { User } from "../models/User";
 import { EmailVerification } from "../models/EmailVerification";
 import { PasswordReset } from "../models/PasswordReset";
+import { Category } from "../models/Category";
 import { sendEmail } from "../services/emailService";
 import { ENV } from "../config/env";
 import { ErrorMessages } from "../utils/errorMessages";
 import jwt from "jsonwebtoken";
 import { generateRandomCode } from "../utils/random";
+
+const DEFAULT_CATEGORIES = [
+    { name: "Ăn uống", type: "expense" as const, keywords: ["ăn", "uống", "nhà hàng", "quán", "cafe", "cà phê", "bún", "phở", "cơm", "bánh"] },
+    { name: "Di chuyển", type: "expense" as const, keywords: ["grab", "taxi", "xăng", "xe", "bus", "metro", "gojek", "be"] },
+    { name: "Mua sắm", type: "expense" as const, keywords: ["mua", "shopping", "quần áo", "giày", "túi", "thời trang"] },
+    { name: "Giải trí", type: "expense" as const, keywords: ["phim", "game", "nhạc", "show", "concert", "du lịch", "netflix", "spotify"] },
+    { name: "Hóa đơn", type: "expense" as const, keywords: ["điện", "nước", "internet", "wifi", "điện thoại", "thuê", "nhà"] },
+    { name: "Sức khỏe", type: "expense" as const, keywords: ["thuốc", "bệnh viện", "khám", "bác sĩ", "phòng khám", "y tế"] },
+    { name: "Giáo dục", type: "expense" as const, keywords: ["học", "sách", "khóa học", "trường", "đại học", "tiếng anh"] },
+    { name: "Khác", type: "expense" as const, keywords: [] },
+    { name: "Lương", type: "income" as const, keywords: ["lương", "salary", "thưởng", "bonus"] },
+    { name: "Đầu tư", type: "income" as const, keywords: ["cổ phiếu", "crypto", "lãi", "đầu tư", "tiết kiệm"] },
+    { name: "Quà tặng", type: "income" as const, keywords: ["quà", "tặng", "lì xì", "gift"] },
+    { name: "Thu nhập khác", type: "income" as const, keywords: [] }
+];
+
+const createDefaultCategories = async (userId: string) => {
+    const existing = await Category.findOne({ userId });
+    if (existing) return;
+
+    const categories = DEFAULT_CATEGORIES.map(cat => ({
+        userId,
+        name: cat.name,
+        type: cat.type,
+        keywords: cat.keywords
+    }));
+    await Category.insertMany(categories);
+};
 
 export const register = async (req: Request, res: Response) => {
     try {
@@ -56,6 +85,8 @@ export const verifyEmail = async (req: Request, res: Response) => {
             return res.status(400).json({ message: ErrorMessages.VERIFICATION_CODE_INVALID });
 
         await User.updateOne({ _id: record.userId }, { isVerified: true });
+
+        await createDefaultCategories(record.userId.toString());
 
         await record.deleteOne();
 
@@ -208,6 +239,7 @@ export const googleLogin = async (req: Request, res: Response) => {
                 avatar: picture ? { url: picture, publicId: "" } : undefined
             });
             await user.save();
+            await createDefaultCategories(user._id.toString());
         } else if (!user.googleId) {
             user.googleId = googleId;
             user.isVerified = true;

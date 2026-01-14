@@ -1,6 +1,7 @@
 import { Response } from "express";
 import { BudgetTransfer } from "../models/BudgetTransfer";
 import { Budget } from "../models/Budget";
+import { Notification } from "../models/Notification";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import { ErrorMessages } from "../utils/errorMessages";
 import { createNotification } from "../services/notificationService";
@@ -127,6 +128,14 @@ export const respondToTransfer = async (req: AuthRequest, res: Response) => {
 
         transfer.respondedAt = new Date();
         await transfer.save();
+
+        await Notification.findOneAndUpdate(
+            {
+                userId: req.user!._id,
+                "data.transferId": transfer._id
+            },
+            { "data.status": action === "approve" ? "approved" : "rejected" }
+        );
 
         const statusMessage = action === "approve" ? "Đã chấp nhận chuyển ngân sách" : "Đã từ chối chuyển ngân sách";
 

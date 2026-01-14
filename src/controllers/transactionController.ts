@@ -146,6 +146,7 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
             const existingNotification = await Notification.findOne({
                 userId: req.user!._id,
                 "data.budgetId": budget._id,
+                type: { $in: ["budget_exceeded", "budget_transfer_request"] },
                 createdAt: { $gte: today }
             });
 
