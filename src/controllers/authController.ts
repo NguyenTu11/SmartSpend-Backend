@@ -62,13 +62,10 @@ export const register = async (req: Request, res: Response) => {
 
         try {
             await sendVerificationEmail(user.email, code);
-        } catch (emailErr: any) {
-            console.error("Email send error:", emailErr.message);
-        }
+        } catch (emailErr: any) { }
 
         return res.status(201).json({ message: "Đăng ký thành công, vui lòng kiểm tra email để xác thực" });
     } catch (err: any) {
-        console.error("Register error:", err.message);
         return res.status(500).json({ message: ErrorMessages.SERVER_ERROR });
     }
 };
@@ -128,9 +125,7 @@ export const resendVerification = async (req: Request, res: Response) => {
 
         try {
             await sendVerificationEmail(user.email, code);
-        } catch (emailErr: any) {
-            console.error("Email send error:", emailErr.message);
-        }
+        } catch (emailErr: any) { }
 
         return res.json({ message: "Đã gửi mã xác thực" });
     } catch (err: any) {
