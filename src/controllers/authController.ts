@@ -128,11 +128,11 @@ export const resendVerification = async (req: Request, res: Response) => {
 
         try {
             await sendVerificationEmail(user.email, code);
-            return res.json({ message: "Đã gửi lại mã xác thực" });
         } catch (emailErr: any) {
             console.error("Email send error:", emailErr.message);
-            return res.json({ message: "Đã tạo mã xác thực mới", code });
         }
+
+        return res.json({ message: "Đã gửi mã xác thực" });
     } catch (err: any) {
         return res.status(500).json({ message: ErrorMessages.SERVER_ERROR });
     }

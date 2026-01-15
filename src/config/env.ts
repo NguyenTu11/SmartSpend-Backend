@@ -12,12 +12,7 @@ export const ENV = {
         API_SECRET: process.env.CLOUDINARY_API_SECRET || ""
     },
 
-    EMAIL: {
-        HOST: process.env.EMAIL_HOST || "",
-        PORT: Number(process.env.EMAIL_PORT) || 587,
-        USER: process.env.EMAIL_USER || "",
-        PASS: process.env.EMAIL_PASS || ""
-    },
+    RESEND_API_KEY: process.env.RESEND_API_KEY || "",
 
     GEMINI_API_KEY: process.env.GEMINI_API_KEY || "",
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || "",
