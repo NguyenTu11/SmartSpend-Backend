@@ -101,6 +101,43 @@ export const verifyEmail = async (req: Request, res: Response) => {
     }
 };
 
+export const resendVerification = async (req: Request, res: Response) => {
+    try {
+        const { email } = req.body;
+
+        const user = await User.findOne({ email });
+        if (!user)
+            return res.status(400).json({ message: "Email không tồn tại" });
+
+        if (user.isVerified)
+            return res.status(400).json({ message: "Email đã được xác thực" });
+
+        await EmailVerification.deleteMany({ email });
+
+        const code = generateRandomCode();
+        const expire = new Date();
+        expire.setMinutes(expire.getMinutes() + 10);
+
+        const emailVer = new EmailVerification({
+            userId: user._id,
+            email: user.email,
+            codeHash: code,
+            expiredAt: expire
+        });
+        await emailVer.save();
+
+        try {
+            await sendVerificationEmail(user.email, code);
+            return res.json({ message: "Đã gửi lại mã xác thực" });
+        } catch (emailErr: any) {
+            console.error("Email send error:", emailErr.message);
+            return res.json({ message: "Đã tạo mã xác thực mới", code });
+        }
+    } catch (err: any) {
+        return res.status(500).json({ message: ErrorMessages.SERVER_ERROR });
+    }
+};
+
 export const login = async (req: Request, res: Response) => {
     try {
         const { email, password } = req.body;
