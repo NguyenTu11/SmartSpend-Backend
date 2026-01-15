@@ -60,10 +60,15 @@ export const register = async (req: Request, res: Response) => {
         });
         await emailVer.save();
 
-        await sendVerificationEmail(user.email, code);
+        try {
+            await sendVerificationEmail(user.email, code);
+        } catch (emailErr: any) {
+            console.error("Email send error:", emailErr.message);
+        }
 
         return res.status(201).json({ message: "Đăng ký thành công, vui lòng kiểm tra email để xác thực" });
     } catch (err: any) {
+        console.error("Register error:", err.message);
         return res.status(500).json({ message: ErrorMessages.SERVER_ERROR });
     }
 };
