@@ -73,7 +73,7 @@ const passwordResetTemplate = (code: string) => baseTemplate(`
 
 export const sendVerificationEmail = async (to: string, code: string) => {
     await resend.emails.send({
-        from: "VIMO <onboarding@resend.dev>",
+        from: "VIMO <vimosupport@gmail.com>",
         to,
         subject: "Mã xác thực VIMO",
         html: verificationTemplate(code)
@@ -82,7 +82,7 @@ export const sendVerificationEmail = async (to: string, code: string) => {
 
 export const sendPasswordResetEmail = async (to: string, code: string) => {
     await resend.emails.send({
-        from: "VIMO <onboarding@resend.dev>",
+        from: "VIMO <vimosupport@gmail.com>",
         to,
         subject: "Đặt lại mật khẩu VIMO",
         html: passwordResetTemplate(code)
@@ -91,7 +91,7 @@ export const sendPasswordResetEmail = async (to: string, code: string) => {
 
 export const sendEmail = async (to: string, subject: string, text: string) => {
     await resend.emails.send({
-        from: "VIMO <onboarding@resend.dev>",
+        from: "VIMO <vimosupport@gmail.com>",
         to,
         subject,
         text
