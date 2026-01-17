@@ -215,12 +215,12 @@ MIT License
 
 ## 👥 Contributors
 
-- Your Name
+- Nguyễn Tú 11
 
 ## 📞 Contact
 
-- Email: support@vimo.com
-- Website: https://vimo.com
+- Email: tunguyenvan1110@gmail.com
+- Website: [https://vimo.com](https://vimo-frontend.vercel.app/)
 
 ---
 
