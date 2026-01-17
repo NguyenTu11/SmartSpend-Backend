@@ -80,9 +80,8 @@ export const register = async (req: Request, res: Response) => {
         });
         await emailVer.save();
 
-        try {
-            await sendVerificationEmail(user.email, code);
-        } catch (emailErr: any) { }
+        sendVerificationEmail(user.email, code)
+            .catch(err => console.error("[Email Error] Verification email failed:", err.message));
 
         return res.status(201).json({ message: "Đăng ký thành công, vui lòng kiểm tra email để xác thực" });
     } catch (err: any) {
@@ -143,9 +142,8 @@ export const resendVerification = async (req: Request, res: Response) => {
         });
         await emailVer.save();
 
-        try {
-            await sendVerificationEmail(user.email, code);
-        } catch (emailErr: any) { }
+        sendVerificationEmail(user.email, code)
+            .catch(err => console.error("[Email Error] Resend verification email failed:", err.message));
 
         return res.json({ message: "Đã gửi mã xác thực" });
     } catch (err: any) {
@@ -217,7 +215,8 @@ export const forgotPassword = async (req: Request, res: Response) => {
         });
         await resetRecord.save();
 
-        await sendPasswordResetEmail(user.email, code);
+        sendPasswordResetEmail(user.email, code)
+            .catch(err => console.error("[Email Error] Password reset email failed:", err.message));
 
         return res.json({ message: "Nếu email tồn tại, bạn sẽ nhận được mã xác nhận" });
     } catch (err: any) {
