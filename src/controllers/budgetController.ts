@@ -1,7 +1,10 @@
 import { Response } from "express";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import { Budget } from "../models/Budget";
+import { Category } from "../models/Category";
+import { Transaction } from "../models/Transaction";
 import { ErrorMessages } from "../utils/errorMessages";
+import { validators } from "../middlewares/validationMiddleware";
 import mongoose from "mongoose";
 
 export const createBudget = async (req: AuthRequest, res: Response): Promise<Response> => {
@@ -9,11 +12,52 @@ export const createBudget = async (req: AuthRequest, res: Response): Promise<Res
         const { categoryId, limit, alertThreshold, startDate, endDate } = req.body;
 
         if (!req.user?._id) return res.status(401).json({ message: ErrorMessages.NO_TOKEN });
-        if (!categoryId || !limit || !startDate || !endDate)
+        if (!categoryId || !limit || !startDate || !endDate) {
             return res.status(400).json({ message: ErrorMessages.BUDGET_REQUIRED_FIELDS });
+        }
 
-        if (limit <= 0)
-            return res.status(400).json({ message: ErrorMessages.BUDGET_INVALID_LIMIT });
+        const amountValidation = validators.isValidAmount(limit);
+        if (!amountValidation.valid) {
+            return res.status(400).json({ message: amountValidation.error });
+        }
+
+        if (Number(limit) > 1000000000000) {
+            return res.status(400).json({ message: ErrorMessages.AMOUNT_TOO_LARGE });
+        }
+
+        const category = await Category.findOne({
+            _id: new mongoose.Types.ObjectId(categoryId),
+            userId: req.user._id
+        });
+        if (!category) {
+            return res.status(404).json({ message: ErrorMessages.CATEGORY_NOT_FOUND });
+        }
+
+        const existingBudget = await Budget.findOne({
+            userId: req.user._id,
+            categoryId: new mongoose.Types.ObjectId(categoryId)
+        });
+        if (existingBudget) {
+            return res.status(400).json({ message: ErrorMessages.BUDGET_DUPLICATE });
+        }
+
+        const startDateValidation = validators.isValidDate(startDate, true);
+        if (!startDateValidation.valid) {
+            return res.status(400).json({ message: startDateValidation.error });
+        }
+
+        const endDateValidation = validators.isValidDate(endDate, true);
+        if (!endDateValidation.valid) {
+            return res.status(400).json({ message: endDateValidation.error });
+        }
+
+        if (new Date(startDate) >= new Date(endDate)) {
+            return res.status(400).json({ message: ErrorMessages.ANALYTICS_INVALID_DATE_RANGE });
+        }
+
+        if (alertThreshold !== undefined && (alertThreshold < 0 || alertThreshold > 1)) {
+            return res.status(400).json({ message: "Ngưỡng cảnh báo phải nằm trong khoảng 0-1" });
+        }
 
         const budget = new Budget({
             userId: new mongoose.Types.ObjectId(req.user._id),
@@ -45,10 +89,74 @@ export const getBudgets = async (req: AuthRequest, res: Response): Promise<Respo
 export const updateBudget = async (req: AuthRequest, res: Response): Promise<Response> => {
     try {
         const { id } = req.params;
+        const { limit, alertThreshold, startDate, endDate } = req.body;
+
         if (!id) return res.status(400).json({ message: ErrorMessages.REQUIRED_FIELDS });
         if (!req.user?._id) return res.status(401).json({ message: ErrorMessages.NO_TOKEN });
 
-        const updates = req.body;
+        const existingBudget = await Budget.findOne({
+            _id: new mongoose.Types.ObjectId(id),
+            userId: req.user._id
+        });
+
+        if (!existingBudget) {
+            return res.status(404).json({ message: ErrorMessages.BUDGET_NOT_FOUND });
+        }
+
+        const updates: any = {};
+
+        if (limit !== undefined) {
+            const amountValidation = validators.isValidAmount(limit);
+            if (!amountValidation.valid) {
+                return res.status(400).json({ message: amountValidation.error });
+            }
+
+            if (Number(limit) > 1000000000000) {
+                return res.status(400).json({ message: ErrorMessages.AMOUNT_TOO_LARGE });
+            }
+
+            const spentResult = await Transaction.aggregate([
+                {
+                    $match: {
+                        userId: new mongoose.Types.ObjectId(req.user._id),
+                        categoryId: existingBudget.categoryId,
+                        type: "expense",
+                        createdAt: { $gte: existingBudget.startDate, $lte: existingBudget.endDate }
+                    }
+                },
+                { $group: { _id: null, total: { $sum: "$amount" } } }
+            ]);
+
+            const currentSpending = spentResult[0]?.total || 0;
+            if (Number(limit) < currentSpending) {
+                return res.status(400).json({ message: ErrorMessages.BUDGET_LIMIT_BELOW_SPENDING });
+            }
+
+            updates.limit = limit;
+        }
+
+        if (alertThreshold !== undefined) {
+            if (alertThreshold < 0 || alertThreshold > 1) {
+                return res.status(400).json({ message: "Ngưỡng cảnh báo phải nằm trong khoảng 0-1" });
+            }
+            updates.alertThreshold = alertThreshold;
+        }
+
+        if (startDate !== undefined) {
+            const startDateValidation = validators.isValidDate(startDate, true);
+            if (!startDateValidation.valid) {
+                return res.status(400).json({ message: startDateValidation.error });
+            }
+            updates.startDate = startDate;
+        }
+
+        if (endDate !== undefined) {
+            const endDateValidation = validators.isValidDate(endDate, true);
+            if (!endDateValidation.valid) {
+                return res.status(400).json({ message: endDateValidation.error });
+            }
+            updates.endDate = endDate;
+        }
 
         const budget = await Budget.findOneAndUpdate(
             {

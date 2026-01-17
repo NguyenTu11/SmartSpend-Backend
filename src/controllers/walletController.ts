@@ -3,19 +3,41 @@ import { Wallet } from "../models/Wallet";
 import { Transaction } from "../models/Transaction";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import { ErrorMessages } from "../utils/errorMessages";
+import { validators } from "../middlewares/validationMiddleware";
 import mongoose from "mongoose";
 
 export const createWallet = async (req: AuthRequest, res: Response) => {
     try {
         const { name, type, currency, balance, isExcludedFromTotal } = req.body;
 
-        if (!name) {
-            return res.status(400).json({ message: ErrorMessages.WALLET_NAME_REQUIRED });
+        const nameValidation = validators.isValidText(name, 50, "Tên ví");
+        if (!nameValidation.valid) {
+            return res.status(400).json({ message: nameValidation.error });
+        }
+
+        const sanitizedName = validators.sanitizeString(name);
+
+        const existingWallet = await Wallet.findOne({
+            userId: req.user!._id,
+            name: sanitizedName
+        });
+        if (existingWallet) {
+            return res.status(400).json({ message: ErrorMessages.WALLET_NAME_DUPLICATE });
+        }
+
+        if (balance !== undefined && balance !== null) {
+            const balanceValidation = validators.isValidPositiveNumber(balance, true);
+            if (!balanceValidation.valid) {
+                return res.status(400).json({ message: balanceValidation.error });
+            }
+            if (Number(balance) > 1000000000000) {
+                return res.status(400).json({ message: ErrorMessages.AMOUNT_TOO_LARGE });
+            }
         }
 
         const wallet = new Wallet({
             userId: req.user!._id,
-            name,
+            name: sanitizedName,
             type: type || "cash",
             currency: currency || "VND",
             balance: balance || 0,
@@ -49,10 +71,42 @@ export const getWallets = async (req: AuthRequest, res: Response) => {
 export const updateWallet = async (req: AuthRequest, res: Response) => {
     try {
         const { id } = req.params;
-        const updates = req.body;
+        const { name, balance, ...otherUpdates } = req.body;
 
         if (!id) {
             return res.status(400).json({ message: ErrorMessages.REQUIRED_FIELDS });
+        }
+
+        const updates: any = { ...otherUpdates };
+
+        if (name !== undefined) {
+            const nameValidation = validators.isValidText(name, 50, "Tên ví");
+            if (!nameValidation.valid) {
+                return res.status(400).json({ message: nameValidation.error });
+            }
+            const sanitizedName = validators.sanitizeString(name);
+
+            const existingWallet = await Wallet.findOne({
+                userId: req.user!._id,
+                name: sanitizedName,
+                _id: { $ne: new mongoose.Types.ObjectId(id) }
+            });
+            if (existingWallet) {
+                return res.status(400).json({ message: ErrorMessages.WALLET_NAME_DUPLICATE });
+            }
+
+            updates.name = sanitizedName;
+        }
+
+        if (balance !== undefined) {
+            const balanceValidation = validators.isValidPositiveNumber(balance, true);
+            if (!balanceValidation.valid) {
+                return res.status(400).json({ message: balanceValidation.error });
+            }
+            if (Number(balance) > 1000000000000) {
+                return res.status(400).json({ message: ErrorMessages.AMOUNT_TOO_LARGE });
+            }
+            updates.balance = balance;
         }
 
         const wallet = await Wallet.findOneAndUpdate(

@@ -1,7 +1,15 @@
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 import { ENV } from "../config/env";
 
-const resend = new Resend(ENV.RESEND_API_KEY);
+const transporter = nodemailer.createTransport({
+    host: ENV.EMAIL.HOST,
+    port: ENV.EMAIL.PORT,
+    secure: false,
+    auth: {
+        user: ENV.EMAIL.USER,
+        pass: ENV.EMAIL.PASSWORD
+    }
+});
 
 const baseTemplate = (content: string) => `
 <!DOCTYPE html>
@@ -72,8 +80,8 @@ const passwordResetTemplate = (code: string) => baseTemplate(`
 `);
 
 export const sendVerificationEmail = async (to: string, code: string) => {
-    await resend.emails.send({
-        from: "VIMO <vimosupport@gmail.com>",
+    await transporter.sendMail({
+        from: ENV.EMAIL.FROM,
         to,
         subject: "Mã xác thực VIMO",
         html: verificationTemplate(code)
@@ -81,8 +89,8 @@ export const sendVerificationEmail = async (to: string, code: string) => {
 };
 
 export const sendPasswordResetEmail = async (to: string, code: string) => {
-    await resend.emails.send({
-        from: "VIMO <vimosupport@gmail.com>",
+    await transporter.sendMail({
+        from: ENV.EMAIL.FROM,
         to,
         subject: "Đặt lại mật khẩu VIMO",
         html: passwordResetTemplate(code)
@@ -90,8 +98,8 @@ export const sendPasswordResetEmail = async (to: string, code: string) => {
 };
 
 export const sendEmail = async (to: string, subject: string, text: string) => {
-    await resend.emails.send({
-        from: "VIMO <vimosupport@gmail.com>",
+    await transporter.sendMail({
+        from: ENV.EMAIL.FROM,
         to,
         subject,
         text

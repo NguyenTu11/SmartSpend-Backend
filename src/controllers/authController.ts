@@ -8,6 +8,7 @@ import { ENV } from "../config/env";
 import { ErrorMessages } from "../utils/errorMessages";
 import jwt from "jsonwebtoken";
 import { generateRandomCode } from "../utils/random";
+import { validators } from "../middlewares/validationMiddleware";
 
 const DEFAULT_CATEGORIES = [
     { name: "Ăn uống", type: "expense" as const, keywords: ["ăn", "uống", "nhà hàng", "quán", "cafe", "cà phê", "bún", "phở", "cơm", "bánh"] },
@@ -41,11 +42,30 @@ export const register = async (req: Request, res: Response) => {
     try {
         const { email, password, name } = req.body;
 
-        const existing = await User.findOne({ email });
-        if (existing)
-            return res.status(400).json({ message: ErrorMessages.EMAIL_EXISTS });
+        if (!validators.isValidEmail(email)) {
+            return res.status(400).json({ message: ErrorMessages.INVALID_EMAIL });
+        }
 
-        const user = new User({ email, password, name });
+        const passwordValidation = validators.isValidPassword(password);
+        if (!passwordValidation.valid) {
+            return res.status(400).json({ message: passwordValidation.error });
+        }
+
+        const nameValidation = validators.isValidName(name);
+        if (!nameValidation.valid) {
+            return res.status(400).json({ message: nameValidation.error });
+        }
+
+        const existing = await User.findOne({ email: email.trim().toLowerCase() });
+        if (existing) {
+            return res.status(400).json({ message: ErrorMessages.EMAIL_EXISTS });
+        }
+
+        const user = new User({
+            email: email.trim().toLowerCase(),
+            password,
+            name: validators.sanitizeString(name)
+        });
         await user.save();
 
         const code = generateRandomCode();
@@ -137,7 +157,15 @@ export const login = async (req: Request, res: Response) => {
     try {
         const { email, password } = req.body;
 
-        const user = await User.findOne({ email });
+        if (!validators.isValidEmail(email)) {
+            return res.status(400).json({ message: ErrorMessages.INVALID_CREDENTIALS });
+        }
+
+        if (!password) {
+            return res.status(400).json({ message: ErrorMessages.INVALID_CREDENTIALS });
+        }
+
+        const user = await User.findOne({ email: email.trim().toLowerCase() });
         if (!user) {
             return res.status(400).json({ message: ErrorMessages.INVALID_CREDENTIALS });
         }
@@ -205,11 +233,16 @@ export const resetPassword = async (req: Request, res: Response) => {
             return res.status(400).json({ message: "Vui lòng điền đầy đủ thông tin" });
         }
 
-        if (newPassword.length < 6) {
-            return res.status(400).json({ message: "Mật khẩu phải có ít nhất 6 ký tự" });
+        if (!validators.isValidEmail(email)) {
+            return res.status(400).json({ message: ErrorMessages.INVALID_EMAIL });
         }
 
-        const record = await PasswordReset.findOne({ email });
+        const passwordValidation = validators.isValidPassword(newPassword);
+        if (!passwordValidation.valid) {
+            return res.status(400).json({ message: passwordValidation.error });
+        }
+
+        const record = await PasswordReset.findOne({ email: email.trim().toLowerCase() });
         if (!record) {
             return res.status(400).json({ message: "Mã xác nhận không hợp lệ" });
         }
@@ -232,7 +265,7 @@ export const resetPassword = async (req: Request, res: Response) => {
         user.password = newPassword;
         await user.save();
 
-        await record.deleteOne();
+        await PasswordReset.deleteMany({ email: email.trim().toLowerCase() });
 
         return res.json({ message: "Đặt lại mật khẩu thành công" });
     } catch (err: any) {

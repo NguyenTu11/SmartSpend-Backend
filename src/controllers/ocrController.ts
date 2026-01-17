@@ -4,6 +4,7 @@ import { processReceiptImage } from "../services/ocrService";
 import { uploadBase64Image } from "../services/cloudinary";
 import { Category } from "../models/Category";
 import { ErrorMessages } from "../utils/errorMessages";
+import { validators } from "../middlewares/validationMiddleware";
 
 export const scanReceipt = async (req: AuthRequest, res: Response) => {
     try {
@@ -11,6 +12,11 @@ export const scanReceipt = async (req: AuthRequest, res: Response) => {
 
         if (!image) {
             return res.status(400).json({ message: ErrorMessages.OCR_IMAGE_REQUIRED });
+        }
+
+        const imageValidation = validators.isValidImageBase64(image);
+        if (!imageValidation.valid) {
+            return res.status(400).json({ message: imageValidation.error });
         }
 
         const base64Data = image.replace(/^data:image\/\w+;base64,/, "");

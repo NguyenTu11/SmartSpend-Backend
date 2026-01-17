@@ -10,6 +10,7 @@ import { ErrorMessages } from "../utils/errorMessages";
 import { detectAnomaly, createAnomalyNotification } from "../services/anomalyService";
 import { uploadBase64Image } from "../services/cloudinary";
 import { createNotification } from "../services/notificationService";
+import { validators } from "../middlewares/validationMiddleware";
 import mongoose from "mongoose";
 
 const calculateNextRecurringDate = (frequency: string, fromDate: Date = new Date()): Date => {
@@ -35,6 +36,8 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
             categoryId,
             type,
             amount,
+            note,
+            transactionDate,
             currency,
             exchangeRate,
             location,
@@ -53,8 +56,27 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
             return res.status(400).json({ message: ErrorMessages.TRANSACTION_INVALID_TYPE });
         }
 
-        if (amount <= 0) {
-            return res.status(400).json({ message: ErrorMessages.TRANSACTION_INVALID_AMOUNT });
+        const amountValidation = validators.isValidAmount(amount);
+        if (!amountValidation.valid) {
+            return res.status(400).json({ message: amountValidation.error });
+        }
+
+        if (Number(amount) > 10000000000) {
+            return res.status(400).json({ message: "Số tiền quá lớn (tối đa 10 tỷ/giao dịch)" });
+        }
+
+        if (transactionDate) {
+            const dateValidation = validators.isValidDate(transactionDate, false);
+            if (!dateValidation.valid) {
+                return res.status(400).json({ message: dateValidation.error });
+            }
+        }
+
+        if (note) {
+            const noteValidation = validators.isValidText(note, 500, "Ghi chú");
+            if (!noteValidation.valid) {
+                return res.status(400).json({ message: noteValidation.error });
+            }
         }
 
         const wallet = await Wallet.findOne({
@@ -66,8 +88,26 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
             return res.status(404).json({ message: ErrorMessages.WALLET_NOT_FOUND });
         }
 
+        const category = await Category.findOne({
+            _id: new mongoose.Types.ObjectId(categoryId),
+            userId: req.user!._id
+        });
+
+        if (!category) {
+            return res.status(404).json({ message: ErrorMessages.CATEGORY_NOT_FOUND });
+        }
+
+        if (type === "expense" && wallet.balance < Number(amount)) {
+            return res.status(400).json({ message: ErrorMessages.WALLET_INSUFFICIENT_BALANCE });
+        }
+
         let evidenceUrl = evidence;
         if (evidenceImage) {
+            const imageValidation = validators.isValidImageBase64(evidenceImage);
+            if (!imageValidation.valid) {
+                return res.status(400).json({ message: imageValidation.error });
+            }
+
             const uploadResult = await uploadBase64Image(evidenceImage, "transactions");
             evidenceUrl = uploadResult.url;
         }
@@ -78,9 +118,11 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
             categoryId: new mongoose.Types.ObjectId(categoryId),
             type,
             amount,
+            note: note ? validators.sanitizeString(note) : undefined,
+            transactionDate: transactionDate ? new Date(transactionDate) : new Date(),
             currency: currency || "VND",
             exchangeRate,
-            location,
+            location: location ? validators.sanitizeString(location) : undefined,
             tags: tags || [],
             evidence: evidenceUrl,
             isRecurring: !!isRecurring,

@@ -4,18 +4,38 @@ import { Transaction } from "../models/Transaction";
 import { Budget } from "../models/Budget";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import { ErrorMessages } from "../utils/errorMessages";
+import { validators } from "../middlewares/validationMiddleware";
 import mongoose from "mongoose";
 
 export const createCategory = async (req: AuthRequest, res: Response) => {
     try {
         const { name, type, parentId, keywords } = req.body;
 
-        if (!name) return res.status(400).json({ message: ErrorMessages.CATEGORY_NAME_REQUIRED });
+        const nameValidation = validators.isValidCategoryName(name);
+        if (!nameValidation.valid) {
+            return res.status(400).json({ message: nameValidation.error });
+        }
+
+        const sanitizedName = validators.sanitizeString(name);
+        const categoryType = type || "expense";
+
+        if (!['income', 'expense'].includes(categoryType)) {
+            return res.status(400).json({ message: "Loại danh mục phải là 'income' hoặc 'expense'" });
+        }
+
+        const existingCategory = await Category.findOne({
+            userId: req.user!._id,
+            name: sanitizedName,
+            type: categoryType
+        });
+        if (existingCategory) {
+            return res.status(400).json({ message: ErrorMessages.CATEGORY_NAME_DUPLICATE });
+        }
 
         const category = new Category({
             userId: req.user!._id,
-            name,
-            type: type || "expense",
+            name: sanitizedName,
+            type: categoryType,
             parentId: parentId ? new mongoose.Types.ObjectId(parentId) : undefined,
             keywords: keywords || [],
         });
@@ -43,9 +63,41 @@ export const updateCategory = async (req: AuthRequest, res: Response) => {
 
         if (!id) return res.status(400).json({ message: ErrorMessages.REQUIRED_FIELDS });
 
+        const existingCategory = await Category.findOne({
+            _id: new mongoose.Types.ObjectId(id),
+            userId: req.user!._id
+        });
+
+        if (!existingCategory) {
+            return res.status(404).json({ message: ErrorMessages.CATEGORY_NOT_FOUND });
+        }
+
+        if (type && type !== existingCategory.type) {
+            return res.status(400).json({ message: ErrorMessages.CATEGORY_TYPE_IMMUTABLE });
+        }
+
         const updateData: any = {};
-        if (name) updateData.name = name;
-        if (type) updateData.type = type;
+
+        if (name) {
+            const nameValidation = validators.isValidCategoryName(name);
+            if (!nameValidation.valid) {
+                return res.status(400).json({ message: nameValidation.error });
+            }
+            const sanitizedName = validators.sanitizeString(name);
+
+            const duplicateCategory = await Category.findOne({
+                userId: req.user!._id,
+                name: sanitizedName,
+                type: existingCategory.type,
+                _id: { $ne: new mongoose.Types.ObjectId(id) }
+            });
+            if (duplicateCategory) {
+                return res.status(400).json({ message: ErrorMessages.CATEGORY_NAME_DUPLICATE });
+            }
+
+            updateData.name = sanitizedName;
+        }
+
         if (keywords) updateData.keywords = keywords;
         if (parentId) updateData.parentId = new mongoose.Types.ObjectId(parentId);
 

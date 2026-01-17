@@ -58,5 +58,50 @@ export const ErrorMessages = {
     FINANCIAL_SCORE_ERROR: "Không thể tính điểm tài chính",
 
     OCR_IMAGE_REQUIRED: "Vui lòng tải lên hình ảnh hóa đơn",
-    OCR_PROCESSING_FAILED: "Không thể xử lý hình ảnh hóa đơn"
+    OCR_PROCESSING_FAILED: "Không thể xử lý hình ảnh hóa đơn",
+    OCR_INVALID_FILE_TYPE: "Loại file không hợp lệ (chỉ chấp nhận JPEG, PNG, WebP)",
+    OCR_FILE_TOO_LARGE: "Kích thước file quá lớn (tối đa 10MB)",
+
+    PASSWORD_TOO_SHORT: "Mật khẩu phải có ít nhất 6 ký tự",
+    PASSWORD_TOO_LONG: "Mật khẩu quá dài (tối đa 128 ký tự)",
+    PASSWORD_NO_LETTER: "Mật khẩu phải chứa ít nhất một chữ cái",
+    PASSWORD_NO_NUMBER: "Mật khẩu phải chứa ít nhất một chữ số",
+    PASSWORD_HAS_EMOJI: "Mật khẩu không được chứa emoji",
+
+    NAME_TOO_LONG: "Tên quá dài (tối đa 100 ký tự)",
+    NAME_INVALID: "Tên chứa ký tự không hợp lệ",
+    NAME_ONLY_NUMBERS: "Tên không được chỉ chứa số",
+
+    AMOUNT_NOT_NUMBER: "Số tiền phải là một số hợp lệ",
+    AMOUNT_NEGATIVE: "Số tiền không được âm",
+    AMOUNT_ZERO: "Số tiền phải lớn hơn 0",
+    AMOUNT_TOO_LARGE: "Số tiền quá lớn",
+
+    DATE_INVALID: "Ngày không hợp lệ",
+    DATE_IN_FUTURE: "Ngày không được ở trong tương lai",
+
+    TEXT_TOO_LONG: "Văn bản quá dài",
+    TEXT_DANGEROUS_CONTENT: "Văn bản chứa nội dung không hợp lệ",
+
+    CATEGORY_NAME_DUPLICATE: "Tên danh mục đã tồn tại",
+    CATEGORY_NAME_INVALID: "Tên danh mục không hợp lệ",
+    CATEGORY_TYPE_IMMUTABLE: "Không thể thay đổi loại danh mục sau khi tạo",
+
+    WALLET_NAME_DUPLICATE: "Tên ví đã tồn tại",
+    WALLET_INSUFFICIENT_BALANCE: "Số dư ví không đủ",
+
+    BUDGET_DUPLICATE: "Danh mục này đã có ngân sách",
+    BUDGET_LIMIT_BELOW_SPENDING: "Hạn mức không thể thấp hơn số tiền đã chi",
+
+    AVATAR_INVALID_FORMAT: "Định dạng ảnh đại diện không hợp lệ",
+    AVATAR_TOO_LARGE: "Kích thước ảnh đại diện quá lớn",
+
+    NOTE_TOO_LONG: "Ghi chú quá dài (tối đa 500 ký tự)",
+
+    CHAT_MESSAGE_TOO_LONG: "Tin nhắn quá dài (tối đa 1000 ký tự)",
+
+    EMAIL_CANNOT_MODIFY: "Không thể thay đổi email sau khi đã xác thực",
+
+    LOGIN_RATE_LIMIT: "Quá nhiều lần đăng nhập thất bại. Vui lòng thử lại sau 15 phút",
+    VERIFICATION_RATE_LIMIT: "Quá nhiều lần thử xác thực. Vui lòng thử lại sau"
 };

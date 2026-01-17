@@ -1,222 +1,227 @@
-# SmartSpend Backend
+# VIMO Backend - Smart Personal Finance Management
 
-Backend API cho ứng dụng quản lý chi tiêu cá nhân SmartSpend (VIMO).
+Backend API cho ứng dụng quản lý tài chính cá nhân VIMO, xây dựng với Node.js, Express, TypeScript và MongoDB.
 
-## Tech Stack
+## 🚀 Công nghệ sử dụng
 
-- **Runtime**: Node.js + TypeScript
-- **Framework**: Express.js
-- **Database**: MongoDB + Mongoose
-- **AI**: Google Gemini API
-- **Authentication**: JWT + Google OAuth
-- **Real-time**: Socket.IO
-- **File Upload**: Cloudinary
-- **Email**: Nodemailer
-- **Cron Jobs**: node-cron
+- **Node.js** & **Express** - REST API framework
+- **TypeScript** - Type-safe development
+- **MongoDB** & **Mongoose** - Database & ODM
+- **JWT** - Authentication & Authorization
+- **Socket.IO** - Real-time notifications
+- **Nodemailer** - Email service
+- **Cloudinary** - Image storage
+- **Google Gemini AI** - AI financial advisor
+- **Tesseract.js** - OCR for receipt scanning
+- **Bcrypt** - Password hashing
 
-## Features
+## 📋 Yêu cầu hệ thống
 
-- Authentication (Register, Login, Email Verification, Google OAuth)
-- Password Reset (Forgot Password)
-- Multi-wallet Management
-- Transaction Tracking (Income/Expense)
-- Budget Management with Alerts
-- Budget Transfer System
-- Recurring Transactions
-- AI Financial Assistant (Rate Limited: 10 req/min)
-- OCR Receipt Scanning (Rate Limited: 5 req/min)
-- Push Notifications (Real-time via Socket.IO)
-- Analytics & Dashboard API
-- Financial Score Calculation
+- Node.js >= 18.0.0
+- MongoDB >= 6.0
+- npm hoặc yarn
 
-## Installation
+## 🛠️ Cài đặt
+
+### 1. Clone repository
+
+```bash
+git clone <repository-url>
+cd SmartSpend-Backend
+```
+
+### 2. Cài đặt dependencies
 
 ```bash
 npm install
 ```
 
-## Environment Variables
+### 3. Cấu hình môi trường
 
-Tạo file `.env` với các biến sau:
+Tạo file `.env` trong thư mục gốc:
 
 ```env
+# Server
 PORT=8000
+
+# Database
 MONGO_URI=mongodb://localhost:27017/smartspend
-JWT_SECRET=your_jwt_secret_key
 
-# Google OAuth
-GOOGLE_CLIENT_ID=your_google_client_id
-
-# AI
-GEMINI_API_KEY=your_gemini_api_key
-
-# Email
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USER=your_email@gmail.com
-EMAIL_PASS=your_app_password
+# JWT
+JWT_SECRET=your-super-secret-jwt-key
 
 # Cloudinary
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
+CLOUDINARY_API_SECRET=your-api-secret
+
+# Email (Gmail SMTP)
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASSWORD=your-16-digit-app-password
+EMAIL_FROM=VIMO <your-email@gmail.com>
+
+# Google Gemini AI
+GEMINI_API_KEY=your-gemini-api-key
+
+# Google OAuth
+GOOGLE_CLIENT_ID=your-google-client-id
+
+# Frontend URL
+FRONTEND_URL=http://localhost:5173
 ```
 
-## Running
+**Lưu ý:** Để dùng Gmail, bạn cần tạo App Password tại https://myaccount.google.com/apppasswords
 
-Development:
+### 4. Chạy ứng dụng
+
+Development mode:
 ```bash
 npm run dev
 ```
 
-Production:
+Production build:
 ```bash
 npm run build
 npm start
 ```
 
-## API Endpoints
-
-### Authentication
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | /api/auth/register | Đăng ký tài khoản |
-| POST | /api/auth/verify-email | Xác thực email |
-| POST | /api/auth/login | Đăng nhập |
-| POST | /api/auth/google | Đăng nhập Google OAuth |
-| POST | /api/auth/forgot-password | Yêu cầu reset mật khẩu |
-| POST | /api/auth/reset-password | Đặt lại mật khẩu |
-
-### User
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | /api/user/profile | Thông tin người dùng |
-| PUT | /api/user/profile | Cập nhật profile |
-| POST | /api/user/avatar | Upload avatar |
-| GET | /api/user/financial-score | Điểm tài chính (0-100) |
-
-### Wallets
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | /api/wallets | Lấy danh sách ví |
-| POST | /api/wallets | Tạo ví mới |
-| PUT | /api/wallets/:id | Cập nhật ví |
-| DELETE | /api/wallets/:id | Xoá ví |
-
-### Categories
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | /api/categories | Lấy danh sách danh mục |
-| POST | /api/categories | Tạo danh mục |
-| PUT | /api/categories/:id | Cập nhật danh mục |
-| DELETE | /api/categories/:id | Xoá danh mục |
-
-### Transactions
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | /api/transactions | Lấy danh sách giao dịch |
-| GET | /api/transactions/:id | Chi tiết giao dịch |
-| GET | /api/transactions/summary | Thống kê chi tiêu |
-| POST | /api/transactions | Tạo giao dịch |
-| PUT | /api/transactions/:id | Cập nhật giao dịch |
-| DELETE | /api/transactions/:id | Xoá giao dịch |
-| GET | /api/transactions/export | Xuất dữ liệu (CSV/JSON) |
-
-### Budgets
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | /api/budgets | Lấy danh sách ngân sách |
-| POST | /api/budgets | Tạo ngân sách |
-| PUT | /api/budgets/:id | Cập nhật ngân sách |
-| DELETE | /api/budgets/:id | Xoá ngân sách |
-
-### Budget Transfers
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | /api/budget-transfers | Lịch sử chuyển ngân sách |
-| GET | /api/budget-transfers/pending | Yêu cầu đang chờ |
-| POST | /api/budget-transfers | Tạo yêu cầu chuyển |
-| POST | /api/budget-transfers/:id/respond | Approve/Reject |
-
-### AI Chat (Rate Limited: 10 req/min)
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | /api/chat/history | Lịch sử chat |
-| POST | /api/chat | Gửi tin nhắn |
-| PATCH | /api/chat/:id/feedback | Feedback like/dislike |
-
-### OCR (Rate Limited: 5 req/min)
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | /api/ocr/scan | Quét hóa đơn (base64) |
-| POST | /api/ocr/scan-file | Quét hóa đơn (file upload) |
-| POST | /api/ocr/upload | Upload ảnh hóa đơn |
-
-### Notifications
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | /api/notifications | Lấy thông báo |
-| PATCH | /api/notifications/:id/read | Đánh dấu đã đọc |
-| PATCH | /api/notifications/read-all | Đánh dấu tất cả đã đọc |
-| DELETE | /api/notifications/:id | Xoá thông báo |
-
-### Analytics
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | /api/analytics/by-time | Thống kê theo khoảng thời gian |
-| GET | /api/analytics/weekly | Thống kê tuần hiện tại |
-| GET | /api/analytics/yearly | Thống kê theo năm |
-
-### Dashboard
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | /api/dashboard | Tổng quan dashboard |
-
-## Project Structure
+## 📁 Cấu trúc thư mục
 
 ```
 src/
-├── config/         # Database & Environment config
-├── controllers/    # Route handlers
-├── middlewares/    # Auth & Rate limiting
-├── models/         # Mongoose schemas
-│   ├── User.ts
-│   ├── Wallet.ts
-│   ├── Category.ts
-│   ├── Transaction.ts
-│   ├── Budget.ts
-│   ├── BudgetTransfer.ts
-│   ├── Conversation.ts
-│   ├── Notification.ts
-│   ├── EmailVerification.ts
-│   └── PasswordReset.ts
-├── routes/         # API routes
-├── services/       # Business logic
-│   ├── aiService.ts
-│   ├── ocrService.ts
-│   ├── emailService.ts
-│   ├── financialScoreService.ts
-│   ├── notificationService.ts
-│   ├── socketManager.ts
-│   └── cloudinary.ts
+├── config/          # Configuration files
+├── controllers/     # Request handlers
 ├── cron/           # Scheduled jobs
-├── utils/          # Helpers & Error messages
-└── index.ts        # Entry point
+├── middlewares/    # Express middlewares
+├── models/         # Mongoose models
+├── routes/         # API routes
+├── services/       # Business logic & external services
+├── types/          # TypeScript type definitions
+└── utils/          # Helper functions
 ```
 
-## Socket.IO Events
+## 🔑 Tính năng chính
 
-| Event | Direction | Description |
-|-------|-----------|-------------|
-| connection | Client → Server | Kết nối socket |
-| register | Client → Server | Đăng ký user ID |
-| notification | Server → Client | Gửi thông báo real-time |
+### Authentication
+- ✅ Email/Password registration & login
+- ✅ Google OAuth 2.0
+- ✅ Email verification
+- ✅ Password reset
+- ✅ JWT token authentication
+- ✅ Rate limiting (login, email)
 
-## Rate Limiting
+### Core Features
+- **Wallets** - Quản lý ví tiền (tiền mặt, ngân hàng, thẻ)
+- **Categories** - Phân loại thu chi
+- **Transactions** - Ghi nhận giao dịch (thu/chi, định kỳ)
+- **Budgets** - Lập ngân sách theo danh mục
+- **Budget Transfer** - Chuyển ngân sách giữa các danh mục
+- **OCR** - Scan hóa đơn tự động
+- **AI Chat** - Tư vấn tài chính bằng AI
+- **Analytics** - Thống kê, báo cáo chi tiết
+- **Notifications** - Thông báo real-time
 
-- **AI Chat**: 10 requests/minute per user
-- **OCR Scan**: 5 requests/minute per user
+### Security & Validation
+- ✅ Input validation & sanitization (100+ rules)
+- ✅ XSS protection
+- ✅ Rate limiting
+- ✅ User data isolation
+- ✅ Password strength enforcement
+- ✅ Amount & date validation
 
-## License
+## 🌐 API Endpoints
 
-MIT
+### Auth
+- `POST /api/auth/register` - Đăng ký
+- `POST /api/auth/login` - Đăng nhập
+- `POST /api/auth/verify-email` - Xác thực email
+- `POST /api/auth/resend-code` - Gửi lại mã code
+- `POST /api/auth/forgot-password` - Quên mật khẩu
+- `POST /api/auth/reset-password` - Đặt lại mật khẩu
+- `POST /api/auth/google` - Đăng nhập Google
+
+### User
+- `GET /api/user/profile` - Lấy thông tin user
+- `PUT /api/user/profile` - Cập nhật profile
+- `GET /api/user/financial-score` - Điểm tài chính
+
+### Wallets
+- `GET /api/wallets` - Danh sách ví
+- `POST /api/wallets` - Tạo ví mới
+- `PUT /api/wallets/:id` - Cập nhật ví
+- `DELETE /api/wallets/:id` - Xóa ví
+
+### Transactions
+- `GET /api/transactions` - Danh sách giao dịch (có filter, search, pagination)
+- `POST /api/transactions` - Tạo giao dịch
+- `PUT /api/transactions/:id` - Cập nhật giao dịch
+- `DELETE /api/transactions/:id` - Xóa giao dịch
+- `GET /api/transactions/summary` - Tổng kết thu chi
+- `GET /api/transactions/export` - Xuất dữ liệu (CSV/JSON)
+
+### Budgets
+- `GET /api/budgets` - Danh sách ngân sách
+- `POST /api/budgets` - Tạo ngân sách
+- `PUT /api/budgets/:id` - Cập nhật ngân sách
+- `DELETE /api/budgets/:id` - Xóa ngân sách
+- `GET /api/budgets/status` - Trạng thái ngân sách
+
+### OCR
+- `POST /api/ocr/scan` - Scan hóa đơn (base64)
+- `POST /api/ocr/scan-file` - Scan hóa đơn (file upload)
+
+### AI Chat
+- `POST /api/chat` - Gửi tin nhắn
+- `GET /api/chat/history` - Lịch sử chat
+
+### Analytics
+- `GET /api/analytics/overview` - Tổng quan
+- `GET /api/analytics/by-category` - Theo danh mục
+- `GET /api/analytics/trends` - Xu hướng chi tiêu
+- `GET /api/analytics/comparison` - So sánh theo tháng
+
+### Dashboard
+- `GET /api/dashboard` - Dữ liệu tổng quan dashboard
+
+## 🔐 Environment Variables
+
+Xem file `.env.example` để biết các biến môi trường cần thiết.
+
+## 📦 Deployment
+
+### Render.com
+
+1. Tạo MongoDB Atlas cluster
+2. Tạo Web Service mới trên Render
+3. Connect repository
+4. Cấu hình Environment Variables
+5. Deploy
+
+Chi tiết xem: https://render.com/docs
+
+## 🧪 Testing
+
+Sử dụng Postman hoặc Thunder Client:
+
+1. Import collection từ `/postman`
+2. Cập nhật base URL và token
+3. Test các endpoints
+
+## 📝 License
+
+MIT License
+
+## 👥 Contributors
+
+- Your Name
+
+## 📞 Contact
+
+- Email: support@vimo.com
+- Website: https://vimo.com
+
+---
+
+Made with ❤️ for VIMO

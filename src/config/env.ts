@@ -12,7 +12,13 @@ export const ENV = {
         API_SECRET: process.env.CLOUDINARY_API_SECRET || ""
     },
 
-    RESEND_API_KEY: process.env.RESEND_API_KEY || "",
+    EMAIL: {
+        HOST: process.env.EMAIL_HOST || "smtp.gmail.com",
+        PORT: parseInt(process.env.EMAIL_PORT || "587"),
+        USER: process.env.EMAIL_USER || "",
+        PASSWORD: process.env.EMAIL_PASSWORD || "",
+        FROM: process.env.EMAIL_FROM || "VIMO <noreply@vimo.com>"
+    },
 
     GEMINI_API_KEY: process.env.GEMINI_API_KEY || "",
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || "",

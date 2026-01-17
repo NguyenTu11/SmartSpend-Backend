@@ -3,6 +3,7 @@ import { ChatMessage } from "../models/ChatMessage";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import { getSpendingData, generateAIResponse } from "../services/aiService";
 import { ErrorMessages } from "../utils/errorMessages";
+import { validators } from "../middlewares/validationMiddleware";
 import mongoose from "mongoose";
 
 export const sendMessage = async (req: AuthRequest, res: Response) => {
@@ -13,6 +14,12 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
             return res.status(400).json({ message: ErrorMessages.CHAT_MESSAGE_REQUIRED });
         }
 
+        const messageValidation = validators.isValidText(message, 1000, "Tin nhắn");
+        if (!messageValidation.valid) {
+            return res.status(400).json({ message: messageValidation.error });
+        }
+
+        const sanitizedMessage = validators.sanitizeString(message);
         const userId = req.user!._id as mongoose.Types.ObjectId;
         const userName = req.user!.name || "bạn";
 
@@ -30,11 +37,11 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
 
         const spendingData = await getSpendingData(userId);
 
-        const { response, tokenUsage } = await generateAIResponse(message, spendingData, chatHistory, userName, isFirstChat);
+        const { response, tokenUsage } = await generateAIResponse(sanitizedMessage, spendingData, chatHistory, userName, isFirstChat);
 
         const chatMessage = new ChatMessage({
             userId,
-            message,
+            message: sanitizedMessage,
             response,
             tokenUsage
         });

@@ -4,6 +4,7 @@ import { calculateFinancialScore } from "../services/financialScoreService";
 import { uploadBase64Image, deleteImage } from "../services/cloudinary";
 import { User } from "../models/User";
 import { ErrorMessages } from "../utils/errorMessages";
+import { validators } from "../middlewares/validationMiddleware";
 import mongoose from "mongoose";
 
 export const getFinancialScore = async (req: AuthRequest, res: Response) => {
@@ -44,15 +45,51 @@ export const getUserProfile = async (req: AuthRequest, res: Response) => {
 
 export const updateProfile = async (req: AuthRequest, res: Response) => {
     try {
-        const { name, bio, currency, language, avatarImage } = req.body;
+        const { name, bio, currency, language, email, avatarImage } = req.body;
         const updates: any = {};
 
-        if (name) updates.name = name;
-        if (bio !== undefined) updates.bio = bio;
-        if (currency) updates.currency = currency;
-        if (language) updates.language = language;
+        if (email) {
+            const user = await User.findById(req.user!._id);
+            if (user?.isVerified) {
+                return res.status(400).json({ message: ErrorMessages.EMAIL_CANNOT_MODIFY });
+            }
+        }
+
+        if (name !== undefined) {
+            const nameValidation = validators.isValidName(name);
+            if (!nameValidation.valid) {
+                return res.status(400).json({ message: nameValidation.error });
+            }
+            updates.name = validators.sanitizeString(name);
+        }
+
+        if (bio !== undefined) {
+            if (bio.length > 500) {
+                return res.status(400).json({ message: "Tiểu sử quá dài (tối đa 500 ký tự)" });
+            }
+            updates.bio = validators.sanitizeString(bio);
+        }
+
+        if (currency !== undefined) {
+            if (!validators.isValidCurrency(currency)) {
+                return res.status(400).json({ message: "Mã tiền tệ không hợp lệ" });
+            }
+            updates.currency = currency;
+        }
+
+        if (language !== undefined) {
+            if (!validators.isValidLanguage(language)) {
+                return res.status(400).json({ message: "Mã ngôn ngữ không hợp lệ" });
+            }
+            updates.language = language;
+        }
 
         if (avatarImage) {
+            const imageValidation = validators.isValidImageBase64(avatarImage);
+            if (!imageValidation.valid) {
+                return res.status(400).json({ message: imageValidation.error });
+            }
+
             const user = await User.findById(req.user!._id);
             if (user?.avatar?.publicId) {
                 await deleteImage(user.avatar.publicId);
